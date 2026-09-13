@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Özge 🩵</title>
+<meta name="description" content="Kavuşana dek kalbim sana eşlik etsin.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🩵%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #070b16;
+    --ink: #e9f4fb;
+    --muted: #8fa6b8;
+    --accent: #7fcdf4;
+    --accent-dim: #4a9ccb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(120% 90% at 50% 35%, #101a30 0%, var(--bg) 60%, #04060d 100%);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .page {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  header { text-align: center; max-width: 34ch; }
+  .name {
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    letter-spacing: 0.02em;
+    margin: 0 0 6px;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .line {
+    margin: 0;
+    font-size: clamp(1.05rem, 2.6vw, 1.3rem);
+    line-height: 1.45;
+    color: var(--ink);
+    font-style: italic;
+    opacity: 0.92;
+  }
+  .stage {
+    position: relative;
+    width: min(92vw, 58dvh, 620px);
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    flex: none;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+    border-radius: 50%;
+  }
+  canvas:active { cursor: grabbing; }
+  .glow {
+    position: absolute; inset: 10%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(127,205,244,0.18) 0%, rgba(127,205,244,0) 65%);
+    pointer-events: none;
+    transform: scale(var(--pulse, 1));
+    z-index: -1;
+  }
+  .count {
+    text-align: center;
+    width: 100%;
+    max-width: 560px;
+  }
+  .units {
+    display: flex;
+    justify-content: center;
+    gap: clamp(10px, 4vw, 28px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .units li { min-width: 3.2em; }
+  .units b {
+    display: block;
+    font-size: clamp(1.8rem, 7vw, 2.8rem);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  .units span {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .beats {
+    margin: 14px 0 0;
+    font-size: clamp(1rem, 2.6vw, 1.2rem);
+    color: var(--ink);
+  }
+  .beats b {
+    font-weight: 400;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .arrived {
+    display: none;
+    font-size: clamp(2.4rem, 9vw, 4rem);
+    color: var(--accent);
+    margin: 0;
+  }
+  .count.done .units, .count.done .beats { display: none; }
+  .count.done .arrived { display: block; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: clamp(0.62rem, 1.9vw, 0.78rem);
+    line-height: 1.7;
+    max-width: 100%;
+  }
+  footer p { margin: 0; }
+  footer .nw { white-space: nowrap; }
+  footer .brk { display: none; }
+  @media (max-width: 560px) { footer .brk { display: inline; } footer .sep { display: none; } }
+  footer .lbl { color: var(--accent-dim); margin-right: 0.6em; }
+  sup { font-size: 0.7em; }
+  #err { display: none; color: #f88; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1 class="name">Özge</h1>
+    <p class="line">Yuvama, en büyük aşkıma kavuşana dek kalbim sana eşlik etsin.</p>
+  </header>
+
+  <div class="stage">
+    <div class="glow" id="glow"></div>
+    <canvas id="c"></canvas>
+  </div>
+
+  <section class="count" id="count" aria-live="polite">
+    <ul class="units">
+      <li><b id="d">–</b><span>gün</span></li>
+      <li><b id="h">–</b><span>saat</span></li>
+      <li><b id="m">–</b><span>dakika</span></li>
+      <li><b id="s">–</b><span>saniye</span></li>
+    </ul>
+    <p class="beats"><b id="beats">–</b> kalp atışı kaldı</p>
+    <p class="arrived">Kavuştuk!</p>
+  </section>
+
+  <footer>
+    <p><span class="lbl">kalp</span><span class="nw">(x<sup>2</sup> + <sup>9</sup>⁄<sub>4</sub>y<sup>2</sup> + z<sup>2</sup> − 1)<sup>3</sup> − x<sup>2</sup>z<sup>3</sup> − <sup>9</sup>⁄<sub>80</sub>y<sup>2</sup>z<sup>3</sup> = 0</span></p>
+    <p><span class="lbl">atış</span><span class="nw">s(t) = 1 + 0.10·e<sup>−(τ−0.10)²/0.004</sup> + 0.06·e<sup>−(τ−0.32)²/0.004</sup></span><span class="sep">,&nbsp; </span><br class="brk"><span class="nw">τ = (t mod T)/T,&nbsp; T = 60/72</span></p>
+  </footer>
+  <pre id="err"></pre>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- Configuration -----------------------------------------------------
+  // 5 October 2026, 15:00 in Milan (CEST, UTC+2) -> 13:00 UTC.
+  var TARGET = Date.parse('2026-10-05T13:00:00Z');
+  var BPM = 72;
+  var PERIOD = 60 / BPM;
+
+  // ---- Pulse: two Gaussian spikes per period (lub-dub) -------------------
+  function pulse(tSec) {
+    var tau = (tSec / PERIOD) % 1;
+    var a = tau - 0.10, b = tau - 0.32;
+    return 1 + 0.10 * Math.exp(-(a * a) / 0.004) + 0.06 * Math.exp(-(b * b) / 0.004);
+  }
+
+  // ---- Countdown ---------------------------------------------------------
+  var el = {
+    d: document.getElementById('d'), h: document.getElementById('h'),
+    m: document.getElementById('m'), s: document.getElementById('s'),
+    beats: document.getElementById('beats'), count: document.getElementById('count')
+  };
+  var fmt = new Intl.NumberFormat('tr-TR');
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+  function updateCountdown(now) {
+    var remainMs = TARGET - now;
+    if (remainMs <= 0) { el.count.classList.add('done'); return; }
+    var sec = Math.floor(remainMs / 1000);
+    el.d.textContent = String(Math.floor(sec / 86400));
+    el.h.textContent = pad(Math.floor(sec / 3600) % 24);
+    el.m.textContent = pad(Math.floor(sec / 60) % 60);
+    el.s.textContent = pad(sec % 60);
+    el.beats.textContent = fmt.format(Math.floor(sec * BPM / 60));
+  }
+  updateCountdown(Date.now());
+  setInterval(function () { updateCountdown(Date.now()); }, 250);
+
+  // ---- Rendering ---------------------------------------------------------
+  var canvas = document.getElementById('c');
+  var glow = document.getElementById('glow');
+  var errBox = document.getElementById('err');
+  function fail(msg) { errBox.style.display = 'block'; errBox.textContent += msg + '\n'; }
+
+  var yaw = 0, pitch = 0.05, dragging = false, lastX = 0, lastY = 0, autoSpin = true, idleSince = 0;
+  function onDown(x, y) { dragging = true; lastX = x; lastY = y; autoSpin = false; }
+  function onMove(x, y) {
+    if (!dragging) return;
+    yaw += (x - lastX) * 0.01;
+    pitch += (y - lastY) * 0.01;
+    pitch = Math.max(-1.2, Math.min(1.2, pitch));
+    lastX = x; lastY = y;
+  }
+  function onUp() { dragging = false; idleSince = performance.now(); }
+  canvas.addEventListener('pointerdown', function (e) { canvas.setPointerCapture(e.pointerId); onDown(e.clientX, e.clientY); });
+  canvas.addEventListener('pointermove', function (e) { onMove(e.clientX, e.clientY); });
+  canvas.addEventListener('pointerup', onUp);
+  canvas.addEventListener('pointercancel', onUp);
+
+  var gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: 'high-performance' });
+  if (gl) {
+    try { startWebGL(gl); } catch (e) { fail(String(e)); start2D(); }
+  } else {
+    start2D();
+  }
+
+  function startWebGL(gl) {
+    var VS = [
+      'attribute vec2 a;',
+      'varying vec2 v;',
+      'void main(){ v = a; gl_Position = vec4(a, 0.0, 1.0); }'
+    ].join('\n');
+
+    var FS = [
+      'precision highp float;',
+      'varying vec2 v;',
+      'uniform float uScale;',   // pulse scale
+      'uniform float uYaw;',
+      'uniform float uPitch;',
+      'uniform float uAspect;',
+      'uniform float uSteps;',
+      '',
+      // Taubin heart (x^2 + 9/4 z^2 + y^2 - 1)^3 - x^2 y^3 - 9/80 z^2 y^3 = 0,
+      // remapped so y is up and z is depth, and written in its cube-root form
+      // a - y * cbrt(x^2 + 9/80 z^2) = 0. Same zero set and same sign as the
+      // polynomial, but the gradient no longer vanishes on the equator y = 0,
+      // which is what makes the polynomial's normals fall apart there.
+      'float heart(vec3 p){',
+      '  p /= uScale;',
+      '  float x2 = p.x*p.x, y2 = p.y*p.y, z2 = p.z*p.z;',
+      '  float a = x2 + 2.25*z2 + y2 - 1.0;',
+      '  float c = pow(x2 + 0.1125*z2 + 1e-9, 1.0/3.0);',
+      '  return a - p.y * c;',
+      '}',
+      'vec3 normalAt(vec3 p){',
+      '  float e = 0.0015;',
+      '  return normalize(vec3(',
+      '    heart(p + vec3(e,0,0)) - heart(p - vec3(e,0,0)),',
+      '    heart(p + vec3(0,e,0)) - heart(p - vec3(0,e,0)),',
+      '    heart(p + vec3(0,0,e)) - heart(p - vec3(0,0,e))));',
+      '}',
+      'mat3 rotY(float a){ float c=cos(a), s=sin(a); return mat3(c,0.,-s, 0.,1.,0., s,0.,c); }',
+      'mat3 rotX(float a){ float c=cos(a), s=sin(a); return mat3(1.,0.,0., 0.,c,s, 0.,-s,c); }',
+      '',
+      'void main(){',
+      '  vec2 uv = v; uv.x *= uAspect;',
+      '  mat3 R = rotY(uYaw) * rotX(uPitch);',
+      '  vec3 ro = R * vec3(0.0, 0.15, 3.4);',
+      '  vec3 rd = R * normalize(vec3(uv * 0.62, -1.0));',
+      '',
+      // Bounding sphere.
+      '  float rad = 1.45 * uScale;',
+      '  float b = dot(ro, rd);',
+      '  float c = dot(ro, ro) - rad*rad;',
+      '  float disc = b*b - c;',
+      '  if (disc < 0.0) { gl_FragColor = vec4(0.0); return; }',
+      '  float sq = sqrt(disc);',
+      '  float tNear = max(-b - sq, 0.0), tFar = -b + sq;',
+      '',
+      // Fixed-step march until the sign flips, then bisect.
+      '  float dt = (tFar - tNear) / uSteps;',
+      '  float t = tNear;',
+      '  float fPrev = heart(ro + rd * t);',
+      '  bool hit = false;',
+      '  for (int i = 0; i < 160; i++) {',
+      '    if (float(i) >= uSteps) break;',
+      '    float tn = t + dt;',
+      '    float f = heart(ro + rd * tn);',
+      '    if (f < 0.0) { ',
+      '      float lo = t, hi = tn;',
+      '      for (int j = 0; j < 7; j++) {',
+      '        float mid = 0.5*(lo+hi);',
+      '        if (heart(ro + rd * mid) < 0.0) hi = mid; else lo = mid;',
+      '      }',
+      '      t = 0.5*(lo+hi); hit = true; break;',
+      '    }',
+      '    t = tn; fPrev = f;',
+      '  }',
+      '  if (!hit) { gl_FragColor = vec4(0.0); return; }',
+      '',
+      '  vec3 p = ro + rd * t;',
+      '  vec3 n = normalAt(p);',
+      '  vec3 V = -rd;',
+      '',
+      // 🩵 palette.
+      '  vec3 base   = vec3(0.50, 0.80, 0.96);',
+      '  vec3 shadow = vec3(0.10, 0.30, 0.52);',
+      '  vec3 sss    = vec3(0.62, 0.90, 1.00);',
+      '',
+      '  vec3 L1 = normalize(vec3(-0.6, 0.9, 0.8));',
+      '  vec3 L2 = normalize(vec3(0.9, -0.2, 0.5));',
+      '  float d1 = max(dot(n, L1), 0.0);',
+      '  float d2 = max(dot(n, L2), 0.0) * 0.35;',
+      '  float wrap = max(dot(n, L1) * 0.5 + 0.5, 0.0);',
+      '  vec3 H1 = normalize(L1 + V);',
+      '  float spec = pow(max(dot(n, H1), 0.0), 90.0) * 0.9;',
+      '  float spec2 = pow(max(dot(n, normalize(L2 + V)), 0.0), 40.0) * 0.25;',
+      '  float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);',
+      '',
+      '  vec3 col = mix(shadow, base, wrap);',
+      '  col += base * d1 * 0.35 + base * d2;',
+      '  col += sss * fres * 0.55;',
+      '  col += vec3(1.0) * (spec + spec2);',
+      '',
+      // Light edge fade for antialiasing on the silhouette.
+      '  float edge = smoothstep(0.0, 0.08, max(dot(n, V), 0.0));',
+      '  float alpha = mix(0.85, 1.0, edge);',
+      '  gl_FragColor = vec4(col * alpha, alpha);',
+      '}'
+    ].join('\n');
+
+    function compile(type, src) {
+      var sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error('Shader: ' + gl.getShaderInfoLog(sh));
+      return sh;
+    }
+    var prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('Link: ' + gl.getProgramInfoLog(prog));
+    gl.useProgram(prog);
+
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    var aLoc = gl.getAttribLocation(prog, 'a');
+    gl.enableVertexAttribArray(aLoc);
+    gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+
+    var u = {
+      scale: gl.getUniformLocation(prog, 'uScale'),
+      yaw: gl.getUniformLocation(prog, 'uYaw'),
+      pitch: gl.getUniformLocation(prog, 'uPitch'),
+      aspect: gl.getUniformLocation(prog, 'uAspect'),
+      steps: gl.getUniformLocation(prog, 'uSteps')
+    };
+
+    var isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && window.innerWidth < 900);
+    var dprCap = isMobile ? 1.5 : 2;
+    var steps = isMobile ? 72 : 110;
+
+    function resize() {
+      var dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+      var w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w; canvas.height = h;
+        gl.viewport(0, 0, w, h);
+      }
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    var t0 = performance.now();
+    function frame(now) {
+      resize();
+      var t = (now - t0) / 1000;
+      var s = pulse(t);
+      if (autoSpin || (!dragging && now - idleSince > 4000)) { autoSpin = true; yaw += 0.004; }
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform1f(u.scale, s);
+      gl.uniform1f(u.yaw, yaw);
+      gl.uniform1f(u.pitch, pitch);
+      gl.uniform1f(u.aspect, canvas.width / canvas.height);
+      gl.uniform1f(u.steps, steps);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      glow.style.setProperty('--pulse', (1 + (s - 1) * 2.2).toFixed(3));
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---- 2D fallback: parametric heart with the same pulse -----------------
+  function start2D() {
+    var ctx = canvas.getContext('2d');
+    if (!ctx) { fail('No canvas support.'); return; }
+    var t0 = performance.now();
+    function frame(now) {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      var s = pulse((now - t0) / 1000);
+      var k = (w * 0.026) * s;
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      ctx.translate(w / 2, h / 2 + w * 0.03);
+      ctx.beginPath();
+      for (var i = 0; i <= 200; i++) {
+        var a = (i / 200) * Math.PI * 2;
+        var x = 16 * Math.pow(Math.sin(a), 3);
+        var y = 13 * Math.cos(a) - 4 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a);
+        if (i === 0) ctx.moveTo(x * k, -y * k); else ctx.lineTo(x * k, -y * k);
+      }
+      ctx.closePath();
+      var g = ctx.createRadialGradient(-w * 0.08, -w * 0.1, w * 0.02, 0, 0, w * 0.5);
+      g.addColorStop(0, '#bfe9ff');
+      g.addColorStop(0.5, '#7fcdf4');
+      g.addColorStop(1, '#1f5f8b');
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+      glow.style.setProperty('--pulse', (1 + (s - 1) * 2.2).toFixed(3));
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>
