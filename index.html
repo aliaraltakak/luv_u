@@ -89,7 +89,6 @@
     z-index: -1;
   }
   .count {
-    padding-bottom: 6vh;
     text-align: center;
     width: 100%;
     max-width: 560px;
@@ -138,6 +137,29 @@
   }
   .count.done .units, .count.done .beats { display: none; }
   .count.done .arrived { display: block; }
+  .quote {
+    text-align: center;
+    max-width: 36ch;
+    margin: 0 auto;
+    padding-bottom: 4px;
+  }
+  .quote p {
+    margin: 0;
+    font-style: italic;
+    font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+    line-height: 1.5;
+    color: var(--ink);
+    opacity: 0.85;
+  }
+  .quote cite {
+    display: block;
+    margin-top: 6px;
+    font-style: normal;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
   #err { display: none; color: #f88; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
 </style>
 </head>
@@ -164,6 +186,10 @@
     <p class="beats"><b id="beats">–</b> kalp atışı kaldı</p>
     <p class="arrived">Kavuştuk!</p>
   </section>
+
+  <footer class="quote">
+    <p>“Aşk, iki bedende yaşayan tek bir ruhtur.”<cite>Aristoteles</cite></p>
+  </footer>
 
   <pre id="err"></pre>
 </div>
