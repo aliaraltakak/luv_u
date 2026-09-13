@@ -89,6 +89,7 @@
     z-index: -1;
   }
   .count {
+    padding-bottom: 6vh;
     text-align: center;
     width: 100%;
     max-width: 560px;
@@ -137,30 +138,6 @@
   }
   .count.done .units, .count.done .beats { display: none; }
   .count.done .arrived { display: block; }
-  footer {
-    display: grid;
-    grid-template-columns: auto auto;
-    column-gap: 0.8em;
-    row-gap: 4px;
-    justify-content: center;
-    align-items: baseline;
-    text-align: left;
-    color: var(--muted);
-    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-    font-size: clamp(0.62rem, 1.9vw, 0.78rem);
-    line-height: 1.7;
-    max-width: 100%;
-  }
-  footer p { margin: 0; display: contents; }
-  footer .lbl { text-align: right; color: var(--accent-dim); }
-  footer .eq { text-align: left; }
-  footer .nw { white-space: nowrap; }
-  sup, sub { line-height: 0; position: relative; vertical-align: baseline; }
-  sup { top: -0.5em; }
-  sub { top: 0.25em; }
-  footer .brk { display: none; }
-  @media (max-width: 560px) { footer .brk { display: inline; } footer .sep { display: none; } }
-  sup, sub { font-size: 0.7em; }
   #err { display: none; color: #f88; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
 </style>
 </head>
@@ -188,10 +165,6 @@
     <p class="arrived">Kavuştuk!</p>
   </section>
 
-  <footer>
-    <p><span class="lbl">kalp</span><span class="eq"><span class="nw">(x<sup>2</sup> + <sup>9</sup>⁄<sub>4</sub>y<sup>2</sup> + z<sup>2</sup> − 1)<sup>3</sup> − x<sup>2</sup>z<sup>3</sup> − <sup>9</sup>⁄<sub>80</sub>y<sup>2</sup>z<sup>3</sup> = 0</span></span></p>
-    <p><span class="lbl">atış</span><span class="eq"><span class="nw">s(t) = 1 + 0.10·e<sup>−(τ−0.10)²/0.004</sup> + 0.06·e<sup>−(τ−0.32)²/0.004</sup></span><span class="sep">,&nbsp; </span><br class="brk"><span class="nw">τ = (t mod T)/T,&nbsp; T = 60/72</span></span></p>
-  </footer>
   <pre id="err"></pre>
 </div>
 
@@ -263,20 +236,21 @@
     resize();
 
     function spawnMeteor(now) {
-      // Enter from the top or the right, travel down-left.
-      var fromTop = Math.random() < 0.6;
-      var x = fromTop ? W * (0.3 + Math.random() * 0.8) : W + 20;
-      var y = fromTop ? -20 : H * Math.random() * 0.4;
-      var speed = 520 + Math.random() * 380;
-      var ang = Math.PI * (0.72 + Math.random() * 0.1); // ~130-148 degrees
+      // Enter from the top or the right edge and travel down-left.
+      // Canvas y grows downward, so a positive vy moves the meteor down.
+      var fromTop = Math.random() < 0.65;
+      var x = fromTop ? W * (0.15 + Math.random() * 1.0) : W + 20;
+      var y = fromTop ? -20 : H * Math.random() * 0.5;
+      var speed = 480 + Math.random() * 360;
+      var ang = Math.PI * (0.70 + Math.random() * 0.12); // 126-148 degrees: left and down
       meteors.push({
         x: x, y: y,
-        vx: Math.cos(ang) * speed, vy: -Math.sin(ang) * speed,
+        vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
         len: 120 + Math.random() * 160,
-        born: now, life: 0.9 + Math.random() * 0.7
+        born: now, life: 1.1 + Math.random() * 0.8
       });
-      nextMeteor = now + 1800 + Math.random() * 3200;
-      if (Math.random() < 0.18) nextMeteor = now + 250 + Math.random() * 300;
+      nextMeteor = now + 1200 + Math.random() * 1800;
+      if (Math.random() < 0.2) nextMeteor = now + 300 + Math.random() * 400;
     }
 
     var last = performance.now();
@@ -309,10 +283,10 @@
           g.addColorStop(0, 'rgba(255,255,255,' + (0.95 * fade) + ')');
           g.addColorStop(0.25, 'rgba(159,220,255,' + (0.55 * fade) + ')');
           g.addColorStop(1, 'rgba(127,205,244,0)');
-          ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+          ctx.strokeStyle = g; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
           ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
           ctx.fillStyle = 'rgba(255,255,255,' + fade + ')';
-          ctx.beginPath(); ctx.arc(m.x, m.y, 1.6, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(m.x, m.y, 2.0, 0, Math.PI * 2); ctx.fill();
         }
         requestAnimationFrame(frame);
       }
