@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Özge 🩵</title>
 <meta name="description" content="Kavuşana dek kalbim sana eşlik etsin.">
+<meta name="theme-color" content="#070b16">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🩵%3C/text%3E%3C/svg%3E">
 <style>
   :root {
@@ -15,15 +19,27 @@
     --accent-dim: #4a9ccb;
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
+  html { background: var(--bg); color-scheme: dark; }
+  html, body { margin: 0; min-height: 100%; }
   body {
-    background: radial-gradient(120% 90% at 50% 35%, #101a30 0%, var(--bg) 60%, #04060d 100%);
+    background: var(--bg) radial-gradient(120% 90% at 50% 35%, #101a30 0%, var(--bg) 60%, #04060d 100%) no-repeat;
+    background-size: 100% 100%;
     color: var(--ink);
     font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
+  #sky {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
   .page {
+    position: relative;
+    z-index: 1;
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
@@ -149,6 +165,7 @@
 </style>
 </head>
 <body>
+<canvas id="sky" aria-hidden="true"></canvas>
 <div class="page">
   <header>
     <h1 class="name">Özge</h1>
@@ -215,6 +232,94 @@
   }
   updateCountdown(Date.now());
   setInterval(function () { updateCountdown(Date.now()); }, 250);
+
+  // ---- Sky: twinkling stars and shooting stars ----------------------------
+  (function sky() {
+    var cv = document.getElementById('sky');
+    var ctx = cv.getContext('2d');
+    if (!ctx) return;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var W = 0, H = 0, dpr = 1, stars = [], meteors = [], nextMeteor = 0;
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var n = Math.round((W * H) / 9000);
+      stars = [];
+      for (var i = 0; i < n; i++) {
+        stars.push({
+          x: Math.random() * W, y: Math.random() * H,
+          r: 0.4 + Math.random() * 1.1,
+          a: 0.25 + Math.random() * 0.6,
+          ph: Math.random() * Math.PI * 2,
+          sp: 0.4 + Math.random() * 1.2,
+          blue: Math.random() < 0.3
+        });
+      }
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function spawnMeteor(now) {
+      // Enter from the top or the right, travel down-left.
+      var fromTop = Math.random() < 0.6;
+      var x = fromTop ? W * (0.3 + Math.random() * 0.8) : W + 20;
+      var y = fromTop ? -20 : H * Math.random() * 0.4;
+      var speed = 520 + Math.random() * 380;
+      var ang = Math.PI * (0.72 + Math.random() * 0.1); // ~130-148 degrees
+      meteors.push({
+        x: x, y: y,
+        vx: Math.cos(ang) * speed, vy: -Math.sin(ang) * speed,
+        len: 120 + Math.random() * 160,
+        born: now, life: 0.9 + Math.random() * 0.7
+      });
+      nextMeteor = now + 1800 + Math.random() * 3200;
+      if (Math.random() < 0.18) nextMeteor = now + 250 + Math.random() * 300;
+    }
+
+    var last = performance.now();
+    function frame(now) {
+      var dt = Math.min((now - last) / 1000, 0.05); last = now;
+      var t = now / 1000;
+      ctx.clearRect(0, 0, W, H);
+
+      for (var i = 0; i < stars.length; i++) {
+        var st = stars[i];
+        var tw = reduced ? 1 : 0.7 + 0.3 * Math.sin(t * st.sp + st.ph);
+        ctx.globalAlpha = st.a * tw;
+        ctx.fillStyle = st.blue ? '#9fdcff' : '#e8f3ff';
+        ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      if (!reduced) {
+        if (now >= nextMeteor) spawnMeteor(now);
+        for (var j = meteors.length - 1; j >= 0; j--) {
+          var m = meteors[j];
+          var age = (now - m.born) / 1000;
+          if (age > m.life) { meteors.splice(j, 1); continue; }
+          m.x += m.vx * dt; m.y += m.vy * dt;
+          var k = age / m.life;
+          var fade = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
+          var nx = -m.vx, ny = -m.vy, nl = Math.hypot(nx, ny); nx /= nl; ny /= nl;
+          var tx = m.x + nx * m.len, ty = m.y + ny * m.len;
+          var g = ctx.createLinearGradient(m.x, m.y, tx, ty);
+          g.addColorStop(0, 'rgba(255,255,255,' + (0.95 * fade) + ')');
+          g.addColorStop(0.25, 'rgba(159,220,255,' + (0.55 * fade) + ')');
+          g.addColorStop(1, 'rgba(127,205,244,0)');
+          ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,' + fade + ')';
+          ctx.beginPath(); ctx.arc(m.x, m.y, 1.6, 0, Math.PI * 2); ctx.fill();
+        }
+        requestAnimationFrame(frame);
+      }
+    }
+    if (reduced) frame(performance.now()); else requestAnimationFrame(frame);
+    nextMeteor = performance.now() + 900;
+  })();
 
   // ---- Rendering ---------------------------------------------------------
   var canvas = document.getElementById('c');
